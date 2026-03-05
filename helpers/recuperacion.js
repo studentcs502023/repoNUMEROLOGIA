@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import axios from "axios";
 import dotenv from "dotenv";
 import { Usuario } from "../models/usuario.js";
 import bcryptjs from "bcryptjs";
@@ -13,47 +13,38 @@ export const generarCodigo = () => {
 };
 
 /**
- * Configura el transporte de email con Gmail
- */
-const crearTransporte = () => {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false
-    }
-  });
-};
-
-/**
- * Envía email con el código de recuperación
+ * Envía email con el código de recuperación usando Brevo API REST
  */
 export const enviarCodigoRecuperacion = async (email, codigo) => {
   try {
-    const transporte = crearTransporte();
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: {
+          name: "Numerología ✨",
+          email: process.env.EMAIL_USER,
+        },
+        to: [{ email }],
+        subject: "Código de recuperación de contraseña",
+        htmlContent: `
+          <h2>Recuperación de Contraseña</h2>
+          <p>Tu código de recuperación es:</p>
+          <h3 style="color: #007bff; letter-spacing: 5px;">${codigo}</h3>
+          <p>Este código expira en <strong>15 minutos</strong>.</p>
+          <p>Si no solicitaste este código, ignora este email.</p>
+        `,
+      },
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    const opciones = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Código de recuperación de contraseña",
-      html: `
-        <h2>Recuperación de Contraseña</h2>
-        <p>Tu código de recuperación es:</p>
-        <h3 style="color: #007bff; letter-spacing: 5px;">${codigo}</h3>
-        <p>Este código expira en <strong>15 minutos</strong>.</p>
-        <p>Si no solicitaste este código, ignora este email.</p>
-      `,
-    };
-
-    await transporte.sendMail(opciones);
     console.log(`✅ Código enviado a ${email}`);
   } catch (error) {
-    console.error("❌ Error al enviar email:", error.message);
+    console.error("❌ Error al enviar email:", error.response?.data || error.message);
     throw new Error("No se pudo enviar el código por email");
   }
 };
