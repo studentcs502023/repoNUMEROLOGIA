@@ -39,7 +39,7 @@ app.use("/api/admin", validarJWT, validarAdmin, routerAdmin);
 app.use(express.static(path.join(__dirname, "public")));
 
 // Manejar History Mode: Cualquier petición que no sea a /api se la enviamos a Vue
-app.get("*", (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
