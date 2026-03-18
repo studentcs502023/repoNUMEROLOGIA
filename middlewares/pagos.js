@@ -9,7 +9,7 @@ export const validarCrearPago = [
     check("monto", "Monto es requerido").notEmpty(),
     check("monto", "Monto debe ser un número positivo").isFloat({ min: 0.01 }),
     check("metodo", "Método de pago es requerido").notEmpty(),
-    check("metodo", "Método debe ser: tarjeta, efectivo o transferencia").isIn(["tarjeta", "efectivo", "transferencia"]),
+    check("metodo", "Método debe ser: tarjeta, efectivo, transferencia o mercadopago").isIn(["tarjeta", "efectivo", "transferencia", "mercadopago"]),
     check("usuario_id").custom(validarMembresiActiva),
     validarCampos
 ];

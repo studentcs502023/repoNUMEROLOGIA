@@ -5,42 +5,51 @@ import mongoose from "mongoose";
 
 const pago = new mongoose.Schema({
 
-    usuario_id:{
+    usuario_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Usuario",
-        required:true,
+        required: true,
     },
-    monto:{
-        type:Number,
-        required:true,
+    monto: {
+        type: Number,
+        required: true,
         min: 0,
         set: (value) => parseFloat(value).toFixed(2),
     },
 
-    fecha_pago:{
+    fecha_pago: {
         type: Date,
         default: Date.now,
-        required:true,
+        required: true,
     },
-    fecha_vencimiento:{
+    fecha_vencimiento: {
         type: Date,
-        required:true,
+        required: true,
 
     },
 
-    metodo:{
+    metodo: {
         type: String,
-        enum: ["tarjeta","efectivo","transferencia"],
+        enum: ["tarjeta", "efectivo", "transferencia", "mercadopago"],
         required: true,
     },
 
-    estado:{
+    estado: {
         type: String,
-        enum:["activo", "vencido"],
-        required:true,
+        enum: ["activo", "vencido"],
+        required: true,
     },
-
+    
+    // Campos para Mercado Pago
+    payment_id: {
+        type: String,
+        required: false,
+    },
+    preference_id: {
+        type: String,
+        required: false,
+    }
 
 });
 
-export const Pago = mongoose.model("pago",pago);
+export const Pago = mongoose.model("pago", pago);
