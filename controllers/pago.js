@@ -297,23 +297,29 @@ const getEstadoMembresia = async (req, res) => {
 const retornoMercadoPago = async (req, res) => {
   try {
     const { status, collection_status, payment_id, collection_id } = req.query;
-    const finalStatus = status || collection_status || "";
+    
+    // Mercado Pago a veces envía el status repetido o como un array/string separado por comas
+    // Ejemplo: status=approved,approved. Queremos que cualquier 'approved' sea válido.
+    const combinedStatus = `${status || ""},${collection_status || ""}`;
+    const finalStatus = combinedStatus.toLowerCase();
+    
     const finalPaymentId = payment_id || collection_id;
 
-    console.log(`🔄 Retorno MP detectado: status=${finalStatus}, payment_id=${finalPaymentId}`);
+    console.log(`🔄 Retorno MP (Normalizado): status=${finalStatus}, payment_id=${finalPaymentId}`);
 
     // Si el pago fue aprobado, intentamos procesarlo de una vez (sin esperar al webhook)
-    if (finalStatus === "approved" && finalPaymentId) {
-      console.log("🚀 Procesando pago instantáneo desde retorno...");
+    if (finalStatus.includes("approved") && finalPaymentId) {
+      console.log("🚀 Activación INSTANTÁNEA en ejecución...");
       await procesarPagoAprobado(finalPaymentId);
     }
-
+    
     const frontendUrl = process.env.FRONTEND_URL;
     // Redireccionamos al frontend con el estado como query param
-    res.redirect(`${frontendUrl}/#/usuario/pago-exitoso?status=${finalStatus}`);
+    // Usamos el status original (el primero) para el frontend
+    const statusForFrontend = (Array.isArray(status) ? status[0] : status) || "approved";
+    res.redirect(`${frontendUrl}/#/usuario/pago-exitoso?status=${statusForFrontend}`);
   } catch (error) {
     console.error("Error en retorno MP:", error.message);
-    // Aun con error, redirigimos para no dejar al usuario en blanco
     res.redirect(`${process.env.FRONTEND_URL}/#/usuario/pago-exitoso?status=error`);
   }
 };
