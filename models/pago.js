@@ -44,6 +44,8 @@ const pago = new mongoose.Schema({
     payment_id: {
         type: String,
         required: false,
+        unique: true,
+        sparse: true
     },
     preference_id: {
         type: String,

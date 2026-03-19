@@ -75,6 +75,63 @@ const crearPreferencia = async (req, res) => {
   }
 };
 
+// Función interna para procesar un pago aprobado (Usa idempotencia)
+const procesarPagoAprobado = async (paymentId) => {
+  try {
+    const client = new MercadoPagoConfig({
+      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN.trim(),
+    });
+
+    const payment = new Payment(client);
+    const data = await payment.get({ id: paymentId });
+
+    if (data.status === "approved") {
+      const usuario_id = data.metadata.usuario_id;
+      const monto = data.transaction_amount;
+      const paymentIdStr = paymentId.toString();
+
+      // Calculo de fecha de vencimiento (30 días)
+      const fechaPago = new Date();
+      const fecha_vencimiento = new Date(
+        fechaPago.getTime() + 30 * 24 * 60 * 60 * 1000,
+      );
+
+      // Usar findOneAndUpdate con upsert para evitar Race Conditions
+      const resultadoMongo = await Pago.findOneAndUpdate(
+        { payment_id: paymentIdStr },
+        {
+          $setOnInsert: {
+            usuario_id,
+            monto,
+            metodo: "mercadopago",
+            fecha_pago: fechaPago,
+            fecha_vencimiento: fecha_vencimiento,
+            estado: "activo",
+            payment_id: paymentIdStr,
+            preference_id: data.order?.id ? data.order.id.toString() : null,
+          }
+        },
+        { upsert: true, new: false }
+      );
+
+      if (resultadoMongo) {
+        console.log(`Pago ${paymentIdStr} ya procesado anteriormente.`);
+        return { success: true, alreadyProcessed: true };
+      }
+
+      // Si es nuevo, activar al usuario
+      await Usuario.findByIdAndUpdate(usuario_id, { estado: "activo" });
+      console.log(`✅ Pago aprobado procesado: Usuario ${usuario_id} (Payment ${paymentIdStr})`);
+      return { success: true, alreadyProcessed: false };
+    }
+
+    return { success: false, status: data.status };
+  } catch (error) {
+    console.error(`Error procesando pago ${paymentId}:`, error.message);
+    throw error;
+  }
+};
+
 // POST Recibir Webhook de Mercado Pago
 const recibirWebhook = async (req, res) => {
   try {
@@ -83,55 +140,8 @@ const recibirWebhook = async (req, res) => {
 
     if (topic === "payment") {
       const paymentId = query.id || query["data.id"];
-
-      const client = new MercadoPagoConfig({
-        accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN.trim(),
-      });
-
-      const payment = new Payment(client);
-      const data = await payment.get({ id: paymentId });
-
-      if (data.status === "approved") {
-        const usuario_id = data.metadata.usuario_id;
-        const monto = data.transaction_amount;
-        const paymentIdStr = paymentId.toString();
-
-        const pagoExistenteStr = paymentIdStr;
-
-        // Calculo de fecha de vencimiento (30 días)
-        const fechaPago = new Date();
-        const fecha_vencimiento = new Date(
-          fechaPago.getTime() + 30 * 24 * 60 * 60 * 1000,
-        );
-
-        // ✅ Usar findOneAndUpdate con upsert para evitar Race Conditions (que 2 webhooks creen 2 pagos a la vez)
-        const resultadoMongo = await Pago.findOneAndUpdate(
-          { payment_id: pagoExistenteStr }, // Buscar si ya existe este payment_id
-          {
-            $setOnInsert: {
-              usuario_id,
-              monto,
-              metodo: "mercadopago",
-              fecha_pago: fechaPago,
-              fecha_vencimiento: fecha_vencimiento,
-              estado: "activo",
-              payment_id: pagoExistenteStr,
-              preference_id: data.order?.id ? data.order.id.toString() : null,
-            }
-          },
-          { upsert: true, new: false } // upsert inserta si no existe. new: false devuelve null si acaba de ser insertado.
-        );
-
-        if (resultadoMongo) {
-          // Si resultadoMongo NO es nulo, significa que ANTES ya existía este documento, por lo tanto es un webhook duplicado.
-          console.log(`Webhook duplicado ignorado (ya estaba en DB) para payment_id: ${pagoExistenteStr}`);
-          return res.sendStatus(200);
-        }
-
-        // Si llegó aquí, es porque acabamos de insertarlo ($setOnInsert) y activamos al usuario
-        await Usuario.findByIdAndUpdate(usuario_id, { estado: "activo" });
-
-        console.log(`Primer pago aprobado procesado para usuario: ${usuario_id} (Payment ${pagoExistenteStr})`);
+      if (paymentId) {
+        await procesarPagoAprobado(paymentId);
       }
     }
 
@@ -284,11 +294,28 @@ const getEstadoMembresia = async (req, res) => {
 };
 
 // GET Retorno desde Mercado Pago: redirige al frontend con el estado del pago
-const retornoMercadoPago = (req, res) => {
-  const status = req.query.status || req.query.collection_status || "";
-  const frontendUrl = process.env.FRONTEND_URL;
-  // Redireccionamos al frontend con el estado como query param
-  res.redirect(`${frontendUrl}/#/usuario/pago-exitoso?status=${status}`);
+const retornoMercadoPago = async (req, res) => {
+  try {
+    const { status, collection_status, payment_id, collection_id } = req.query;
+    const finalStatus = status || collection_status || "";
+    const finalPaymentId = payment_id || collection_id;
+
+    console.log(`🔄 Retorno MP detectado: status=${finalStatus}, payment_id=${finalPaymentId}`);
+
+    // Si el pago fue aprobado, intentamos procesarlo de una vez (sin esperar al webhook)
+    if (finalStatus === "approved" && finalPaymentId) {
+      console.log("🚀 Procesando pago instantáneo desde retorno...");
+      await procesarPagoAprobado(finalPaymentId);
+    }
+    
+    const frontendUrl = process.env.FRONTEND_URL;
+    // Redireccionamos al frontend con el estado como query param
+    res.redirect(`${frontendUrl}/#/usuario/pago-exitoso?status=${finalStatus}`);
+  } catch (error) {
+    console.error("Error en retorno MP:", error.message);
+    // Aun con error, redirigimos para no dejar al usuario en blanco
+    res.redirect(`${process.env.FRONTEND_URL}/#/usuario/pago-exitoso?status=error`);
+  }
 };
 
 export {
