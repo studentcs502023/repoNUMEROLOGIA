@@ -10,54 +10,52 @@ export function iniciarTareaVerificacionMembresias() {
       console.log("🔄 Ejecutando verificación de membresías vencidas...");
 
       try {
-        // Obtener todos los pagos activos
-        const pagosActivos = await Pago.find({ estado: "activo" });
+        // 1. Primero, buscamos todos los pagos que ya vencieron por fecha y los marcamos como 'vencido'
+        // Esto asegura que la base de datos esté al día antes de procesar usuarios
+        const ahora = new Date();
+        const pagosVencidosResult = await Pago.updateMany(
+          {
+            estado: "activo",
+            fecha_vencimiento: { $lt: ahora },
+          },
+          { estado: "vencido" }
+        );
 
-        let usuariosActualizados = 0;
+        if (pagosVencidosResult.modifiedCount > 0) {
+          console.log(`📌 ${pagosVencidosResult.modifiedCount} pagos marcados como vencidos por fecha.`);
+        }
 
-        for (const pago of pagosActivos) {
-          const ahora = new Date();
+        // 2. Verificación de usuarios: Buscamos usuarios que están 'activo'
+        const usuariosActivos = await Usuario.find({ estado: "activo" });
+        let usuariosInactivados = 0;
 
-          // Si la fecha_vencimiento es menor a hoy, actualizar
-          if (pago.fecha_vencimiento < ahora) {
-            // Actualizar pago a estado "vencido"
-            await Pago.findByIdAndUpdate(pago._id, { estado: "vencido" });
+        for (const usuario of usuariosActivos) {
+          // 3. ¿Tiene AL MENOS UN pago que siga 'activo'?
+          const tienePagoActivo = await Pago.findOne({
+            usuario_id: usuario._id,
+            estado: "activo",
+          });
 
-            // Verificar si este usuario tiene algún pago activo
-            const pagoActivoRestante = await Pago.findOne({
-              usuario_id: pago.usuario_id,
-              fecha_vencimiento: { $gt: ahora },
-              estado: "activo",
-            });
-
-            // Si no tiene más pagos activos, marcar usuario como inactivo
-            if (!pagoActivoRestante) {
-              const usuario = await Usuario.findByIdAndUpdate(
-                pago.usuario_id,
-                { estado: "inactivo" },
-                { new: true },
-              );
-
-              if (usuario) {
-                await enviarEmailMembresiaVencida(usuario.nombre, usuario.email);
-                usuariosActualizados++;
-              }
-            }
+          // 4. Si no tiene pagos activos, lo inactivamos
+          if (!tienePagoActivo) {
+            await Usuario.findByIdAndUpdate(usuario._id, { estado: "inactivo" });
+            
+            // Notificar por email
+            await enviarEmailMembresiaVencida(usuario.nombre, usuario.email);
+            
+            console.log(`✅ Usuario ${usuario.email} inactivado (sin membresía vigente).`);
+            usuariosInactivados++;
           }
         }
 
-        if (usuariosActualizados > 0) {
-          console.log(
-            `✅ ${usuariosActualizados} usuario(s) actualizado(s) a inactivo`,
-          );
+        if (usuariosInactivados > 0) {
+          console.log(`✅ Total: ${usuariosInactivados} usuarios pasaron a estado inactivo.`);
         } else {
-          console.log("✅ No hay membresías vencidas por actualizar");
+          console.log("✅ Todos los usuarios activos tienen su membresía al día.");
         }
+
       } catch (error) {
-        console.error(
-          "❌ Error en la verificación de membresías:",
-          error.message,
-        );
+        console.error("❌ Error en la verificación de membresías:", error.message);
       }
     },
     {
