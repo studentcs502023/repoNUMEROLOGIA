@@ -37,14 +37,12 @@ app.use("/api/lecturas", validarJWT, routerLectura);
 app.use("/api/admin", validarJWT, validarAdmin, routerAdmin);
 
 // === SERVIR EL FRONTEND (Vue SPA) ===
-// Comentado: El frontend se ejecuta en desarrollo mediante Vite (puerto 5173)
-// Si quieres servir el frontend desde aquí, descomenta estas líneas y asegúrate de que exista la carpeta 'public' con el build de Vue
-// app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Manejar History Mode: Cualquier petición que no sea a /api se la enviamos a Vue
-// app.get(/.*/, (req, res) => {
-//   res.sendFile(path.join(__dirname, "public", "index.html"));
-// });
+app.get(/.*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 app.listen(process.env.PORT, () => {
   console.log(`Servidor escuchando en el puerto ${process.env.PORT}`);
