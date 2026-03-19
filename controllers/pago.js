@@ -83,7 +83,7 @@ const recibirWebhook = async (req, res) => {
 
     if (topic === "payment") {
       const paymentId = query.id || query["data.id"];
-      
+
       const client = new MercadoPagoConfig({
         accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN.trim(),
       });
@@ -97,7 +97,7 @@ const recibirWebhook = async (req, res) => {
         const paymentIdStr = paymentId.toString();
 
         const pagoExistenteStr = paymentIdStr;
-        
+
         // Calculo de fecha de vencimiento (30 días)
         const fechaPago = new Date();
         const fecha_vencimiento = new Date(
