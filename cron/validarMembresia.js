@@ -4,7 +4,7 @@ import { Usuario } from "../models/usuario.js";
 
 export function iniciarTareaVerificacionMembresias() {
   cron.schedule(
-    "0 0 * * *",
+    "*/5 * * * *",
     async () => {
       console.log("🔄 Ejecutando verificación de membresías vencidas...");
 
@@ -59,6 +59,6 @@ export function iniciarTareaVerificacionMembresias() {
   );
 
   console.log(
-    "⏰ Tarea de verificación de membresías programada (cada 30 minutos)",
+    "⏰ Tarea de verificación de membresías programada (cada 5 minutos)",
   );
 }
