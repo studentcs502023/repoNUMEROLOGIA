@@ -4,10 +4,7 @@ import {
   cambiarContraseña,
 } from "../helpers/recuperacion.js";
 
-/**
- * POST /api/usuarios/olvide-contraseña
- * Solicita recuperación de contraseña
- */
+
 const postOlvideContraseña = async (req, res) => {
   try {
     const { email } = req.body;

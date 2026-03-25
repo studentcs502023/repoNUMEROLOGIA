@@ -128,11 +128,7 @@ const getAllLecturas = async (req, res) => {
     }
 };
 
-/**
- * CAMBIAR ROL DE USUARIO (Admin)
- * PUT /api/admin/usuario/:usuario_id/rol
- * Body: { rol: 'usuario' | 'administrador' }
- */
+
 const cambiarRolUsuario = async (req, res) => {
     try {
         const { usuario_id } = req.params;

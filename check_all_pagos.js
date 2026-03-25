@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
-const MONGO_URI = "mongodb+srv://camilo2601:ROCO2501@camilogelves.1cm96l3.mongodb.net/numerologia?appName=camilogelves";
+dotenv.config();
+
+const MONGO_URI = process.env.MONGO_URI;
 
 const pagoSchema = new mongoose.Schema({ 
   usuario_id: mongoose.Schema.Types.ObjectId,

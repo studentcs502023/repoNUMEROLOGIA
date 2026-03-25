@@ -32,9 +32,9 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/usuarios", routerUsuario);
 app.use("/api/pagos", routerPago);
-app.use("/api/lecturas", validarJWT, routerLectura);
-
-app.use("/api/admin", validarJWT, validarAdmin, routerAdmin);
+app.use("/api/lecturas", routerLectura);
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/api/admin",validarAdmin, routerAdmin);
 
 // === SERVIR EL FRONTEND (Vue SPA) ===
 app.use(express.static(path.join(__dirname, "public")));

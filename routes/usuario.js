@@ -65,18 +65,18 @@ routerUsuario.post(
 // ═══════════════════════════════════════════════
 
 // GET /api/usuarios - Listar todos
-routerUsuario.get("/", validarJWT, getUsuarios);
+routerUsuario.get("/", getUsuarios);
 
 // GET /api/usuarios/perfil - Perfil autenticado
-routerUsuario.get("/perfil", validarJWT, obtenerPerfil);
+routerUsuario.get("/perfil", obtenerPerfil);
 
 // GET /api/usuarios/:id - Ver usuario por ID
-routerUsuario.get("/:id", validarJWT, validarObtenerUsuario, getUsuario);
+routerUsuario.get("/:id", validarObtenerUsuario, getUsuario);
 
 // PUT /api/usuarios/:id - Editar usuario
-routerUsuario.put("/:id", validarJWT, validarActualizarUsuario, putUsuario);
+routerUsuario.put("/:id",validarActualizarUsuario, putUsuario);
 
 // DELETE /api/usuarios/:id - Eliminar usuario
-routerUsuario.delete("/:id", validarJWT, validarEliminarUsuario, deleteUsuario);
+routerUsuario.delete("/:id", validarEliminarUsuario, deleteUsuario);
 
 export default routerUsuario;

@@ -55,7 +55,6 @@ const crearPreferencia = async (req, res) => {
           pending: `${backUrlBase}/api/pagos/retorno?status=pending`,
         },
         auto_return: "approved",
-        notification_url: `${backUrlBase}/api/pagos/webhook`,
         metadata: {
           usuario_id: usuario_id.toString(),
         },
