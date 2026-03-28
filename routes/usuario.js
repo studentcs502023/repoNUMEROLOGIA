@@ -68,7 +68,7 @@ routerUsuario.post(
 routerUsuario.get("/", getUsuarios);
 
 // GET /api/usuarios/perfil - Perfil autenticado
-routerUsuario.get("/perfil", obtenerPerfil);
+routerUsuario.get("/perfil", validarJWT, obtenerPerfil);
 
 // GET /api/usuarios/:id - Ver usuario por ID
 routerUsuario.get("/:id", validarObtenerUsuario, getUsuario);
