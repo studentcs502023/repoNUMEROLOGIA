@@ -2,7 +2,8 @@ import { Router } from "express";
 import {
   crearPreferencia,
   recibirNotificacion,
-  verificarPago
+  verificarPago,
+  verificarPagoManual
 } from "../controllers/mercadopago.js";
 import { validarJWT } from "../helpers/validar-JWT.js";
 
@@ -19,11 +20,21 @@ routerMP.post(
 routerMP.post("/webhook", recibirNotificacion);
 routerMP.get("/webhook", recibirNotificacion);
 
-// Verificar manualmente
-routerMP.get(
-  "/verify-payment",
-  validarJWT,
-  verificarPago
-);
+// // Verificar manualmente
+// routerMP.get(
+//   "/verify-payment",
+//   validarJWT,
+//   verificarPago
+// );
 
+/**
+ * RUTA 3: Verificación Manual (El "Plan B")
+ * Se activa cuando el usuario pega el ID de operación en el input
+ * El :paymentId es el que recibimos en req.params
+ */
+routerMP.get(
+  "/verificar-pago/:paymentId", 
+  validarJWT, 
+  verificarPagoManual
+);
 export default routerMP;

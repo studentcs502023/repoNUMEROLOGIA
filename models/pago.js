@@ -30,7 +30,7 @@ const pago = new mongoose.Schema({
 
     metodo: {
         type: String,
-        enum: ["tarjeta", "efectivo", "transferencia", "mercadopago"],
+        enum: ["tarjeta", "efectivo", "transferencia", "mercadopago", "mercadopago_manual"],
         required: true,
     },
 

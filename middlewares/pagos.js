@@ -1,8 +1,8 @@
 import { check } from "express-validator";
 import { validarCampos } from "./validar-campos.js";
 import { validarExisteUsuario, validarMembresiActiva } from "../helpers/pagos.js";
+import { Pago } from "../models/pago.js";
 
-// Validaciones para POST pago
 export const validarCrearPago = [
     check("usuario_id", "Usuario ID es requerido").notEmpty(),
     check("usuario_id", "Usuario ID debe ser un ID válido de MongoDB").isMongoId().custom(validarExisteUsuario),
@@ -14,16 +14,31 @@ export const validarCrearPago = [
     validarCampos
 ];
 
-// Validaciones para GET pagos por usuario
 export const validarObtenerPagosPorUsuario = [
     check("usuario_id", "Usuario ID es requerido").notEmpty(),
     check("usuario_id", "Usuario ID debe ser un ID válido de MongoDB").isMongoId().custom(validarExisteUsuario),
     validarCampos
 ];
 
-// Validaciones para GET estado membresía
 export const validarObtenerEstadoMembresia = [
     check("usuario_id", "Usuario ID es requerido").notEmpty(),
     check("usuario_id", "Usuario ID debe ser un ID válido de MongoDB").isMongoId().custom(validarExisteUsuario),
     validarCampos
 ];
+
+// Middleware para verificar si el usuario es Premium
+export const esPremium = async (req, res, next) => {
+    const usuario = req.usuario;
+    if (!usuario) return res.status(500).json({ msg: 'Falta validar JWT' });
+    try {
+        const pagoActivo = await Pago.findOne({
+            usuario_id: usuario._id,
+            estado: 'activo',
+            fecha_vencimiento: { $gt: new Date() }
+        });
+        if (!pagoActivo) return res.status(403).json({ msg: 'Acceso exclusivo Premium' });
+        next();
+    } catch (error) {
+        res.status(500).json({ msg: 'Error verificando premium' });
+    }
+};
